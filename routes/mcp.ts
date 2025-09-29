@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerTools } from "../tools/trilium-tools.ts";
-import { version, name } from "../package.json" with { type: "json" };
+import packageJson from "../package.json" with { type: "json" };
 
 export default async function mcpRoutes(fastify: FastifyInstance) {
   // Handle POST requests for client-to-server communication (stateless)
@@ -10,8 +10,8 @@ export default async function mcpRoutes(fastify: FastifyInstance) {
     try {
       // Create new instances for each request to ensure isolation
       const sessionServer = new McpServer({
-        name,
-        version,
+        name: packageJson.name,
+        version: packageJson.version,
       });
 
       // Register all tools for this request
