@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { registerTools } from "../tools/index.js";
+import { registerTools } from "../tools/index.ts";
 import packageJson from "../package.json" with { type: "json" };
 
 export default async function mcpRoutes(fastify: FastifyInstance) {

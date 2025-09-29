@@ -1,25 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // Core note operations
-import { registerCreateNote } from "./core/create-note.js";
-import { registerGetNote } from "./core/get-note.js";
-import { registerGetNoteContent } from "./core/get-note-content.js";
-import { registerUpdateNote } from "./core/update-note.js";
-import { registerDeleteNote } from "./core/delete-note.js";
+import { registerCreateNote } from "./core/create-note.ts";
+import { registerGetNote } from "./core/get-note.ts";
+import { registerGetNoteContent } from "./core/get-note-content.ts";
+import { registerUpdateNote } from "./core/update-note.ts";
+import { registerDeleteNote } from "./core/delete-note.ts";
 
 // Search operations
-import { registerSearchNotes } from "./search/search-notes.js";
+import { registerSearchNotes } from "./search/search-notes.ts";
 
 // Calendar operations (unified)
-import { registerGetCalendarNote } from "./calendar/get-calendar-note.js";
+import { registerGetCalendarNote } from "./calendar/get-calendar-note.ts";
 
 // File operations
-import { registerCreateAttachment } from "./files/create-attachment.js";
+import { registerCreateAttachment } from "./files/create-attachment.ts";
 
 // System operations
-import { registerGetAppInfo } from "./system/get-app-info.js";
-import { registerExportNote } from "./system/export-note.js";
-import { registerCreateBackup } from "./system/create-backup.js";
+import { registerGetAppInfo } from "./system/get-app-info.ts";
+import { registerExportNote } from "./system/export-note.ts";
+import { registerCreateBackup } from "./system/create-backup.ts";
 
 // Helper function to register all tools for a server instance
 export function registerTools(server: McpServer) {

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { etapi, formatSuccess, formatError } from "../etapi.js";
+import { etapi, formatSuccess, formatError } from "../etapi.ts";
 
 export function registerCreateNote(server: McpServer) {
   server.registerTool(
