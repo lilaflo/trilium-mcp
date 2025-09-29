@@ -5,8 +5,8 @@
   "type": "module",
   "main": "mcp-trilium-server.ts",
   "scripts": {
-    "start": "node mcp-trilium-server.ts",
-    "dev": "node --watch mcp-trilium-server.ts",
+    "start": "dotenvx run node mcp-trilium-server.ts",
+    "dev": "dotenvx run node --watch mcp-trilium-server.ts",
     "build": "echo \"No build step required for TypeScript\"",
     "lint": "echo \"Add linting script here\"",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,15 +21,16 @@
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
+    "@fastify/cors": "^10.1.0",
     "@modelcontextprotocol/sdk": "^1.18.2",
-    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
-    "express": "^5.1.0",
+    "fastify": "^5.2.0",
     "node-fetch": "^3.3.2",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^1.51.0",
     "@flydotio/dockerfile": "^0.7.10",
     "@types/node": "^24.5.2"
   },
