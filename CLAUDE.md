@@ -1,0 +1,1 @@
+- Use https://github.com/TriliumNext/Trilium as Trilium github project page

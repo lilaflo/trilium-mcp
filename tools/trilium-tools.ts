@@ -81,89 +81,51 @@ export function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "find_notes",
+    "search_notes",
     {
-      description: "Search notes by fulltext query",
+      description: "Search notes with optional filtering and formatting",
       inputSchema: {
-        q: z.string().describe("Search query to find notes"),
-      },
-    },
-    async ({ q }) => {
-      const res = await etapi(`/notes?search=${encodeURIComponent(q)}`);
-      return { content: [{ type: "text", text: JSON.stringify(res) }] };
-    }
-  );
-
-  server.registerTool(
-    "search_note",
-    {
-      description:
-        "Advanced search for notes with multiple criteria including title, content, labels, and attributes",
-      inputSchema: {
-        query: z.string().describe("Main search query text"),
-        searchIn: z
-          .enum(["title", "content", "both"])
-          .default("both")
-          .describe("Where to search: title only, content only, or both"),
+        query: z.string().describe("Search query to find notes"),
         limit: z
           .number()
           .min(1)
           .max(100)
           .default(20)
           .describe("Maximum number of results to return (1-100, default: 20)"),
-        includeArchived: z
-          .boolean()
-          .default(false)
-          .describe("Whether to include archived notes in search results"),
-        noteType: z
-          .string()
-          .optional()
-          .describe("Filter by note type (e.g., 'text', 'code', 'book', etc.)"),
+        format: z
+          .enum(["raw", "structured"])
+          .default("structured")
+          .describe(
+            "Output format: 'raw' for direct API response, 'structured' for formatted results"
+          ),
       },
     },
-    async ({ query, searchIn, limit, includeArchived, noteType }) => {
+    async ({ query, limit, format }) => {
       try {
-        let searchQuery = query;
+        const res = await etapi(`/notes?search=${encodeURIComponent(query)}`);
 
-        // Build advanced search query based on parameters
-        if (searchIn === "title") {
-          searchQuery = `note.title *=* "${query}"`;
-        } else if (searchIn === "content") {
-          searchQuery = `note.content *=* "${query}"`;
+        if (format === "raw") {
+          return { content: [{ type: "text", text: JSON.stringify(res) }] };
         }
 
-        if (noteType) {
-          searchQuery += ` note.type = ${noteType}`;
-        }
+        // Structured format with better presentation
+        const results = res.results || [];
+        const limitedResults = results.slice(0, limit);
 
-        if (!includeArchived) {
-          searchQuery += ` !note.isArchived`;
-        }
-
-        const searchParams = new URLSearchParams({
-          query: searchQuery,
-          limit: limit.toString(),
-        });
-
-        // For advanced search, use the simple search endpoint with query parameter
-        const res = await etapi(`/notes?search=${encodeURIComponent(searchQuery)}`);
-
-        // Format the response with better structure
         const formattedResult = {
-          query: searchQuery,
-          totalResults: res.results ? res.results.length : 0,
-          results: res.results ? res.results.slice(0, limit).map((note: any) => ({
+          query: query,
+          totalResults: results.length,
+          displayedResults: limitedResults.length,
+          results: limitedResults.map((note: any) => ({
             noteId: note.noteId,
             title: note.title,
             type: note.type,
-            isArchived: note.isArchived,
+            isArchived: note.isArchived || false,
             dateCreated: note.dateCreated,
             dateModified: note.dateModified,
-            // Include a snippet of content if available
-            contentPreview: note.content
-              ? note.content.substring(0, 200) + "..."
-              : null,
-          })) : [],
+            parentNoteIds: note.parentNoteIds || [],
+            attributes: note.attributes || [],
+          })),
         };
 
         return {
