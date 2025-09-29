@@ -13,38 +13,60 @@ interface ETAPIOptions {
 }
 
 async function etapi(path: string, init: ETAPIOptions = {}): Promise<any> {
+  const requestId = Math.random().toString(36).substring(2, 15);
+  const startTime = Date.now();
+
   const headers = {
-    ...init.headers,
     Authorization: `Basic ${Buffer.from(`etapi:${AUTH}`).toString("base64")}`,
     "Content-Type": "application/json",
+    ...init.headers, // Allow overriding Content-Type and other headers
   };
 
   const url = `${ETAPI_BASE}${path}`;
-  console.log(`ETAPI request: ${init.method || "GET"} ${url}`);
+  console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Starting ${init.method || "GET"} request to ${url}`);
+  console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request headers:`, JSON.stringify(headers, null, 2));
+  if (init.body) {
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request body:`, init.body);
+  }
 
   try {
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Making fetch request`);
     const res = await fetch(url, {
       ...init,
       headers,
     });
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Fetch completed with status: ${res.status} ${res.statusText}`);
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error(`ETAPI error: ${res.status} ${errorText}`);
+      const endTime = Date.now();
+      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI error after ${endTime - startTime}ms: ${res.status} ${errorText}`);
       throw new Error(`ETAPI request failed: ${res.status} ${errorText}`);
     }
 
     // Handle content endpoints that return plain text/html
     if (path.includes('/content')) {
-      return await res.text();
+      console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as text (content endpoint)`);
+      const textResult = await res.text();
+      const endTime = Date.now();
+      console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${endTime - startTime}ms, response length: ${textResult.length} chars`);
+      return textResult;
     }
 
-    return await res.json();
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as JSON`);
+    const jsonResult = await res.json();
+    const endTime = Date.now();
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${endTime - startTime}ms`);
+    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Response data:`, JSON.stringify(jsonResult, null, 2));
+    return jsonResult;
   } catch (error) {
+    const endTime = Date.now();
     if (error instanceof Error) {
-      console.error(`ETAPI request failed: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI request failed after ${endTime - startTime}ms: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] Error stack:`, error.stack);
       throw error;
     }
+    console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] Unknown error occurred during ETAPI request after ${endTime - startTime}ms`);
     throw new Error("Unknown error occurred during ETAPI request");
   }
 }
