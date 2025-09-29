@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerTools } from "../tools/trilium-tools.ts";
+import { version, name } from "../package.json" with { type: "json" };
 
 export default async function mcpRoutes(fastify: FastifyInstance) {
   // Handle POST requests for client-to-server communication (stateless)
@@ -9,8 +10,8 @@ export default async function mcpRoutes(fastify: FastifyInstance) {
     try {
       // Create new instances for each request to ensure isolation
       const sessionServer = new McpServer({
-        name: "trilium-mcp",
-        version: "0.1.0",
+        name,
+        version,
       });
 
       // Register all tools for this request
@@ -50,7 +51,7 @@ export default async function mcpRoutes(fastify: FastifyInstance) {
   });
 
   // SSE notifications not supported in stateless mode
-  fastify.get("/mcp", async (request, reply) => {
+  fastify.get("/mcp", async (_request, reply) => {
     console.log("Received GET MCP request");
     reply.code(405).send({
       jsonrpc: "2.0",
@@ -63,7 +64,7 @@ export default async function mcpRoutes(fastify: FastifyInstance) {
   });
 
   // Session termination not needed in stateless mode
-  fastify.delete("/mcp", async (request, reply) => {
+  fastify.delete("/mcp", async (_request, reply) => {
     console.log("Received DELETE MCP request");
     reply.code(405).send({
       jsonrpc: "2.0",
