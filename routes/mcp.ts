@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { registerTools } from "../tools/trilium-tools.ts";
+import { registerTools } from "../tools/index.js";
 import packageJson from "../package.json" with { type: "json" };
 
 export default async function mcpRoutes(fastify: FastifyInstance) {

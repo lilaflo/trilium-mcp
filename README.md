@@ -22,6 +22,7 @@ A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://
 ### ✅ Core Note Operations (6 endpoints)
 
 #### 1. `create_note` - Create New Notes
+
 Create notes with rich content and hierarchical organization.
 
 ```json
@@ -42,12 +43,14 @@ Create notes with rich content and hierarchical organization.
 ```
 
 **Parameters:**
+
 - `parentId` (string): Parent note ID (use "root" for top-level)
 - `title` (string): Note title
 - `content` (string, optional): HTML content
 - `type` (string, default: "text"): Note type
 
 #### 2. `get_note` - Retrieve Note Metadata
+
 Get complete note information including relationships and attributes.
 
 ```json
@@ -65,9 +68,11 @@ Get complete note information including relationships and attributes.
 ```
 
 **Parameters:**
+
 - `noteId` (string): ID of the note to retrieve
 
 #### 3. `get_note_content` - Get Note Content
+
 Retrieve the raw HTML content of a note.
 
 ```json
@@ -85,6 +90,7 @@ Retrieve the raw HTML content of a note.
 ```
 
 #### 4. `update_note` - Update Note Title
+
 Update note title and metadata (content updated separately).
 
 ```json
@@ -103,11 +109,13 @@ Update note title and metadata (content updated separately).
 ```
 
 **Parameters:**
+
 - `id` (string): Note ID to update
 - `title` (string, optional): New title
 - `content` (string, optional): Use `update_note_content` instead
 
 #### 5. `update_note_content` - Update Note Content
+
 Update the HTML content of a note directly.
 
 ```json
@@ -126,6 +134,7 @@ Update the HTML content of a note directly.
 ```
 
 #### 6. `delete_note` - Delete Notes
+
 Remove a note from Trilium (handles empty API responses).
 
 ```json
@@ -145,6 +154,7 @@ Remove a note from Trilium (handles empty API responses).
 ### 🔍 Search Operations (1 endpoint)
 
 #### 7. `search_notes` - Advanced Search
+
 Full-text search with structured results and filtering options.
 
 ```json
@@ -164,6 +174,7 @@ Full-text search with structured results and filtering options.
 ```
 
 **Parameters:**
+
 - `query` (string): Search query
 - `limit` (number, 1-100, default: 20): Max results
 - `format` ("raw" | "structured", default: "structured"): Output format
@@ -171,6 +182,7 @@ Full-text search with structured results and filtering options.
 ### 📅 Calendar Integration (3 endpoints)
 
 #### 8. `get_day_note` - Daily Notes
+
 Get or create daily notes for calendar integration.
 
 ```json
@@ -188,6 +200,7 @@ Get or create daily notes for calendar integration.
 ```
 
 #### 9. `get_week_note` - Weekly Notes ⚠️
+
 Get weekly notes (requires specific date format).
 
 ```json
@@ -205,6 +218,7 @@ Get weekly notes (requires specific date format).
 ```
 
 #### 10. `get_month_note` - Monthly Notes
+
 Get or create monthly notes with child relationships.
 
 ```json
@@ -222,6 +236,7 @@ Get or create monthly notes with child relationships.
 ```
 
 #### 11. `get_inbox_note` - Inbox Notes
+
 Get the inbox note for a specific date (returns daily note).
 
 ```json
@@ -241,6 +256,7 @@ Get the inbox note for a specific date (returns daily note).
 ### 📎 File Operations (1 endpoint)
 
 #### 12. `create_attachment` - File Attachments
+
 Create file attachments with base64-encoded content.
 
 ```json
@@ -263,6 +279,7 @@ Create file attachments with base64-encoded content.
 ```
 
 **Parameters:**
+
 - `ownerId` (string): Note ID that owns the attachment
 - `title` (string): Filename
 - `role` (string, default: "file"): Attachment role
@@ -273,6 +290,7 @@ Create file attachments with base64-encoded content.
 ### 🛠️ System Operations (3 endpoints)
 
 #### 13. `get_app_info` - System Information
+
 Get comprehensive Trilium instance information.
 
 ```json
@@ -288,12 +306,14 @@ Get comprehensive Trilium instance information.
 ```
 
 **Response includes:**
+
 - Trilium version (0.98.0)
 - Node.js version (v22.18.0)
 - Database version (233)
 - Build information and data directory
 
 #### 14. `export_note` - Export Notes ⚠️
+
 Export note subtrees as ZIP files (binary response handling needed).
 
 ```json
@@ -312,10 +332,12 @@ Export note subtrees as ZIP files (binary response handling needed).
 ```
 
 **Parameters:**
+
 - `noteId` (string): Note ID to export (use "root" for full export)
 - `format` ("html" | "markdown", default: "html"): Export format
 
 #### 15. `create_backup` - Database Backup ⚠️
+
 Create database backups (empty response handling needed).
 
 ```json
@@ -334,10 +356,10 @@ Create database backups (empty response handling needed).
 
 ## 🎯 Status Summary
 
-| Status | Count | Tools |
-|--------|-------|-------|
-| ✅ **Working** | **13/15** | All core operations, search, calendar, attachments, system info |
-| ⚠️ **Minor Issues** | **2/15** | `get_week_note` (date format), `export_note` (binary handling) |
+| Status              | Count     | Tools                                                           |
+| ------------------- | --------- | --------------------------------------------------------------- |
+| ✅ **Working**      | **13/15** | All core operations, search, calendar, attachments, system info |
+| ⚠️ **Minor Issues** | **2/15**  | `get_week_note` (date format), `export_note` (binary handling)  |
 
 **Overall Grade: A- (87% success rate)**
 
@@ -346,17 +368,22 @@ Create database backups (empty response handling needed).
 ### For AI Clients (Recommended)
 
 1. **Copy configuration** from `mcp-server-config.json`:
+
 ```json
 {
   "mcpServers": {
     "trilium": {
       "command": "curl",
       "args": [
-        "-X", "POST",
+        "-X",
+        "POST",
         "https://your-trilium-server.example.com/mcp",
-        "-H", "Content-Type: application/json",
-        "-H", "Accept: application/json, text/event-stream",
-        "--data-binary", "@-"
+        "-H",
+        "Content-Type: application/json",
+        "-H",
+        "Accept: application/json, text/event-stream",
+        "--data-binary",
+        "@-"
       ]
     }
   }
@@ -364,6 +391,7 @@ Create database backups (empty response handling needed).
 ```
 
 2. **Import into your AI client**:
+
    - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
    - **Other MCP clients**: Use the universal configuration
 
@@ -426,6 +454,7 @@ curl -X POST https://your-trilium-server.example.com/mcp \
 ## 🏗️ Local Development
 
 ### Prerequisites
+
 - Node.js 18+
 - pnpm package manager
 - Trilium Notes instance with ETAPI enabled
@@ -433,6 +462,7 @@ curl -X POST https://your-trilium-server.example.com/mcp \
 ### Setup
 
 1. **Clone and install**:
+
 ```bash
 git clone <repository-url>
 cd trilium-mcp
@@ -440,12 +470,14 @@ pnpm install
 ```
 
 2. **Configure environment**:
+
 ```bash
 cp .env.example .env
 # Edit .env with your Trilium URL and token
 ```
 
 3. **Start development server**:
+
 ```bash
 pnpm dev  # Auto-reload enabled
 # or
@@ -453,22 +485,24 @@ pnpm start  # Production mode
 ```
 
 4. **Health check**:
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `TRILIUM_URL` | Trilium ETAPI URL (include `/etapi` path) | ✅ | - |
-| `TRILIUM_TOKEN` | ETAPI authentication token | ✅ | - |
-| `PORT` | HTTP server port | ❌ | 3000 |
-| `NODE_ENV` | Environment mode | ❌ | development |
+| Variable        | Description                               | Required | Default     |
+| --------------- | ----------------------------------------- | -------- | ----------- |
+| `TRILIUM_URL`   | Trilium ETAPI URL (include `/etapi` path) | ✅       | -           |
+| `TRILIUM_TOKEN` | ETAPI authentication token                | ✅       | -           |
+| `PORT`          | HTTP server port                          | ❌       | 3000        |
+| `NODE_ENV`      | Environment mode                          | ❌       | development |
 
 ## 📊 Production Features
 
 ### 🔍 **Comprehensive Logging**
+
 - **Request tracking**: Unique IDs for every MCP request with timing
 - **ETAPI monitoring**: All Trilium API calls logged with request/response details
 - **Health monitoring**: System stats every 30 seconds (memory, connections, uptime)
@@ -476,15 +510,17 @@ curl http://localhost:3000/health
 - **Connection tracking**: Active/total connection counts with lifecycle logging
 
 ### 🏥 **Health Monitoring**
+
 ```bash
 # View server health
-curl https://trilium-mcp.fly.dev/health
+curl https://my-own-trilium-mcp.fly.dev/health
 
 # Monitor deployment logs
 fly logs -a your-app-name
 ```
 
 ### 🔒 **Security**
+
 - **HTTPS deployment** with proper TLS
 - **ETAPI authentication** with Basic Auth
 - **CORS enabled** for cross-origin requests
