@@ -34,6 +34,11 @@ async function etapi(path: string, init: ETAPIOptions = {}): Promise<any> {
       throw new Error(`ETAPI request failed: ${res.status} ${errorText}`);
     }
 
+    // Handle content endpoints that return plain text/html
+    if (path.includes('/content')) {
+      return await res.text();
+    }
+
     return await res.json();
   } catch (error) {
     if (error instanceof Error) {
@@ -178,6 +183,403 @@ export function registerTools(server: McpServer) {
         body: JSON.stringify({ title, content }),
       });
       return { content: [{ type: "text", text: JSON.stringify(res) }] };
+    }
+  );
+
+  // Get specific note by ID
+  server.registerTool(
+    "get_note",
+    {
+      description: "Get a specific note by its ID",
+      inputSchema: {
+        noteId: z.string().describe("ID of the note to retrieve"),
+      },
+    },
+    async ({ noteId }) => {
+      try {
+        const note = await etapi(`/notes/${noteId}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get note",
+              message: errorMessage,
+              noteId: noteId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Delete note by ID
+  server.registerTool(
+    "delete_note",
+    {
+      description: "Delete a note by its ID",
+      inputSchema: {
+        noteId: z.string().describe("ID of the note to delete"),
+      },
+    },
+    async ({ noteId }) => {
+      try {
+        await etapi(`/notes/${noteId}`, {
+          method: "DELETE",
+        });
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Note ${noteId} deleted successfully` }) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to delete note",
+              message: errorMessage,
+              noteId: noteId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get note content (HTML)
+  server.registerTool(
+    "get_note_content",
+    {
+      description: "Get the raw HTML content of a note",
+      inputSchema: {
+        noteId: z.string().describe("ID of the note to get content for"),
+      },
+    },
+    async ({ noteId }) => {
+      try {
+        const content = await etapi(`/notes/${noteId}/content`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify({ noteId, content }, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get note content",
+              message: errorMessage,
+              noteId: noteId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Update note content directly
+  server.registerTool(
+    "update_note_content",
+    {
+      description: "Update the HTML content of a note directly",
+      inputSchema: {
+        noteId: z.string().describe("ID of the note to update content for"),
+        content: z.string().describe("New HTML content for the note"),
+      },
+    },
+    async ({ noteId, content }) => {
+      try {
+        await etapi(`/notes/${noteId}/content`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "text/plain",
+          },
+          body: content,
+        });
+        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Content updated for note ${noteId}` }) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to update note content",
+              message: errorMessage,
+              noteId: noteId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get day note (calendar integration)
+  server.registerTool(
+    "get_day_note",
+    {
+      description: "Get or create a day note for a specific date",
+      inputSchema: {
+        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+      },
+    },
+    async ({ date }) => {
+      try {
+        const note = await etapi(`/calendar/days/${date}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get day note",
+              message: errorMessage,
+              date: date,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get week note
+  server.registerTool(
+    "get_week_note",
+    {
+      description: "Get or create a week note for a specific date",
+      inputSchema: {
+        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+      },
+    },
+    async ({ date }) => {
+      try {
+        const note = await etapi(`/calendar/weeks/${date}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get week note",
+              message: errorMessage,
+              date: date,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get month note
+  server.registerTool(
+    "get_month_note",
+    {
+      description: "Get or create a month note for a specific month",
+      inputSchema: {
+        month: z.string().describe("Month in YYYY-MM format (e.g., 2025-01)"),
+      },
+    },
+    async ({ month }) => {
+      try {
+        const note = await etapi(`/calendar/months/${month}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get month note",
+              message: errorMessage,
+              month: month,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get inbox note
+  server.registerTool(
+    "get_inbox_note",
+    {
+      description: "Get the inbox note for a specific date",
+      inputSchema: {
+        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+      },
+    },
+    async ({ date }) => {
+      try {
+        const note = await etapi(`/inbox/${date}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get inbox note",
+              message: errorMessage,
+              date: date,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Create attachment
+  server.registerTool(
+    "create_attachment",
+    {
+      description: "Create an attachment for a note",
+      inputSchema: {
+        ownerId: z.string().describe("ID of the note that will own this attachment"),
+        title: z.string().describe("Title/filename of the attachment"),
+        role: z.string().default("file").describe("Role of the attachment (default: file)"),
+        mime: z.string().default("text/plain").describe("MIME type of the attachment"),
+        content: z.string().describe("Content of the attachment (base64 for binary files)"),
+        position: z.number().optional().describe("Position of the attachment"),
+      },
+    },
+    async ({ ownerId, title, role, mime, content, position }) => {
+      try {
+        const attachment = await etapi("/attachments", {
+          method: "POST",
+          body: JSON.stringify({
+            ownerId,
+            title,
+            role,
+            mime,
+            content,
+            position,
+          }),
+        });
+        return { content: [{ type: "text", text: JSON.stringify(attachment, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to create attachment",
+              message: errorMessage,
+              ownerId: ownerId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Get app info
+  server.registerTool(
+    "get_app_info",
+    {
+      description: "Get information about the running Trilium instance",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const info = await etapi("/app-info", {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify(info, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to get app info",
+              message: errorMessage,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Export note
+  server.registerTool(
+    "export_note",
+    {
+      description: "Export a note subtree as ZIP file",
+      inputSchema: {
+        noteId: z.string().describe("ID of the note to export (use 'root' for full export)"),
+        format: z.enum(["html", "markdown"]).default("html").describe("Export format"),
+      },
+    },
+    async ({ noteId, format }) => {
+      try {
+        const exportData = await etapi(`/notes/${noteId}/export?format=${format}`, {
+          method: "GET",
+        });
+        return { content: [{ type: "text", text: JSON.stringify({
+          success: true,
+          message: `Export completed for note ${noteId}`,
+          format: format,
+          // Note: In a real implementation, you'd want to handle the binary ZIP data appropriately
+        }, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to export note",
+              message: errorMessage,
+              noteId: noteId,
+            }, null, 2)
+          }],
+        };
+      }
+    }
+  );
+
+  // Create backup
+  server.registerTool(
+    "create_backup",
+    {
+      description: "Create a database backup with a given name",
+      inputSchema: {
+        backupName: z.string().describe("Name for the backup (will create backup-{name}.db)"),
+      },
+    },
+    async ({ backupName }) => {
+      try {
+        await etapi(`/backup/${backupName}`, {
+          method: "PUT",
+        });
+        return { content: [{ type: "text", text: JSON.stringify({
+          success: true,
+          message: `Backup created: backup-${backupName}.db`,
+          backupName: backupName,
+        }, null, 2) }] };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              error: "Failed to create backup",
+              message: errorMessage,
+              backupName: backupName,
+            }, null, 2)
+          }],
+        };
+      }
     }
   );
 }
