@@ -478,7 +478,7 @@ curl http://localhost:3000/health
 ### 🏥 **Health Monitoring**
 ```bash
 # View server health
-curl https://your-trilium-server.example.com/health
+curl https://trilium-mcp.fly.dev/health
 
 # Monitor deployment logs
 fly logs -a your-app-name

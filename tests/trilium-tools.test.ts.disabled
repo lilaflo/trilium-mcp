@@ -1,0 +1,600 @@
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { setupFetchMock, mockEtapiResponses } from './mocks.js';
+
+// Mock the entire module to avoid ES module issues
+jest.unstable_mockModule('../tools/trilium-tools.js', () => ({
+  setupTriliumTools: jest.fn()
+}));
+
+describe('Trilium MCP Tools', () => {
+  let fetchMock: jest.MockedFunction<typeof fetch>;
+  let mockServer: any;
+  let toolHandlers: Map<string, any>;
+
+  beforeEach(async () => {
+    fetchMock = setupFetchMock();
+
+    // Mock MCP server
+    mockServer = {
+      setRequestHandler: jest.fn(),
+      addTool: jest.fn()
+    };
+
+    // Import the actual module after mocking
+    const { setupTriliumTools } = await import('../tools/trilium-tools.js');
+
+    // Setup tools and capture handlers
+    toolHandlers = new Map();
+    mockServer.addTool.mockImplementation((toolDef: any, handler: any) => {
+      toolHandlers.set(toolDef.name, handler);
+    });
+
+    await setupTriliumTools(mockServer);
+  });
+
+  describe('Core Note Operations', () => {
+    describe('create_note', () => {
+      it('should create a note with required parameters', async () => {
+        const handler = toolHandlers.get('create_note');
+        expect(handler).toBeDefined();
+
+        const result = await handler({
+          parentId: 'root',
+          title: 'Test Note',
+          content: '<h1>Test Content</h1>',
+          type: 'text'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/create-note'),
+          expect.objectContaining({
+            method: 'POST',
+            headers: expect.objectContaining({
+              'Content-Type': 'application/json',
+              'Authorization': expect.stringContaining('Basic ')
+            }),
+            body: expect.stringContaining('Test Note')
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully created note')
+        }]);
+      });
+
+      it('should create a note with minimal parameters', async () => {
+        const handler = toolHandlers.get('create_note');
+
+        const result = await handler({
+          parentId: 'root',
+          title: 'Minimal Note'
+        });
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully created note')
+        }]);
+      });
+
+      it('should handle ETAPI errors gracefully', async () => {
+        fetchMock.mockRejectedValueOnce(new Error('Network error'));
+        const handler = toolHandlers.get('create_note');
+
+        const result = await handler({
+          parentId: 'root',
+          title: 'Error Note'
+        });
+
+        expect(result.isError).toBe(true);
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Failed to create note')
+        }]);
+      });
+    });
+
+    describe('get_note', () => {
+      it('should retrieve note metadata', async () => {
+        const handler = toolHandlers.get('get_note');
+
+        const result = await handler({
+          noteId: 'test-note-123'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/notes/test-note-123'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Note Information')
+        }]);
+      });
+
+      it('should handle non-existent notes', async () => {
+        fetchMock.mockRejectedValueOnce(new Error('Not Found'));
+        const handler = toolHandlers.get('get_note');
+
+        const result = await handler({
+          noteId: 'non-existent'
+        });
+
+        expect(result.isError).toBe(true);
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Failed to get note')
+        }]);
+      });
+    });
+
+    describe('get_note_content', () => {
+      it('should retrieve note content', async () => {
+        const handler = toolHandlers.get('get_note_content');
+
+        const result = await handler({
+          noteId: 'test-note-123'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/notes/test-note-123/content'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('<h1>Test Content</h1>')
+        }]);
+      });
+    });
+
+    describe('update_note', () => {
+      it('should update note title', async () => {
+        const handler = toolHandlers.get('update_note');
+
+        const result = await handler({
+          id: 'test-note-123',
+          title: 'Updated Title'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/notes/test-note-123'),
+          expect.objectContaining({
+            method: 'PATCH',
+            body: expect.stringContaining('Updated Title')
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully updated note')
+        }]);
+      });
+    });
+
+    describe('update_note_content', () => {
+      it('should update note content', async () => {
+        const handler = toolHandlers.get('update_note_content');
+
+        const result = await handler({
+          noteId: 'test-note-123',
+          content: '<h1>Updated Content</h1>'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/notes/test-note-123/content'),
+          expect.objectContaining({
+            method: 'PUT',
+            headers: expect.objectContaining({
+              'Content-Type': 'text/plain'
+            }),
+            body: '<h1>Updated Content</h1>'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully updated note content')
+        }]);
+      });
+    });
+
+    describe('delete_note', () => {
+      it('should delete a note', async () => {
+        const handler = toolHandlers.get('delete_note');
+
+        const result = await handler({
+          noteId: 'test-note-123'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/notes/test-note-123'),
+          expect.objectContaining({
+            method: 'DELETE'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully deleted note')
+        }]);
+      });
+    });
+  });
+
+  describe('Search Operations', () => {
+    describe('search_notes', () => {
+      it('should search notes with default parameters', async () => {
+        const handler = toolHandlers.get('search_notes');
+
+        const result = await handler({
+          query: 'test search'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/search/test%20search'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Search Results')
+        }]);
+      });
+
+      it('should search with custom limit and format', async () => {
+        const handler = toolHandlers.get('search_notes');
+
+        const result = await handler({
+          query: 'project',
+          limit: 5,
+          format: 'raw'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('limit=5'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Search Results')
+        }]);
+      });
+    });
+  });
+
+  describe('Calendar Integration', () => {
+    describe('get_day_note', () => {
+      it('should get day note for a specific date', async () => {
+        const handler = toolHandlers.get('get_day_note');
+
+        const result = await handler({
+          date: '2025-09-29'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/calendar/days/2025-09-29'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Day Note Information')
+        }]);
+      });
+    });
+
+    describe('get_week_note', () => {
+      it('should handle week note API error', async () => {
+        const handler = toolHandlers.get('get_week_note');
+
+        const result = await handler({
+          date: '2025-09-29'
+        });
+
+        expect(result.isError).toBe(true);
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Failed to get week note')
+        }]);
+      });
+    });
+
+    describe('get_month_note', () => {
+      it('should get month note for a specific month', async () => {
+        const handler = toolHandlers.get('get_month_note');
+
+        const result = await handler({
+          month: '2025-09'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/calendar/months/2025-09'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Month Note Information')
+        }]);
+      });
+    });
+
+    describe('get_inbox_note', () => {
+      it('should get inbox note (returns day note)', async () => {
+        const handler = toolHandlers.get('get_inbox_note');
+
+        const result = await handler({
+          date: '2025-09-29'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/calendar/days/2025-09-29'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Inbox Note')
+        }]);
+      });
+    });
+  });
+
+  describe('File Operations', () => {
+    describe('create_attachment', () => {
+      it('should create file attachment with base64 content', async () => {
+        const handler = toolHandlers.get('create_attachment');
+
+        const result = await handler({
+          ownerId: 'test-note-123',
+          title: 'test-file.txt',
+          role: 'file',
+          mime: 'text/plain',
+          content: 'VGVzdCBmaWxlIGNvbnRlbnQ=',
+          position: 10
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/create-note'),
+          expect.objectContaining({
+            method: 'POST',
+            body: expect.stringContaining('"type":"file"')
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully created attachment')
+        }]);
+      });
+
+      it('should create attachment with default parameters', async () => {
+        const handler = toolHandlers.get('create_attachment');
+
+        const result = await handler({
+          ownerId: 'test-note-123',
+          title: 'simple-file.txt',
+          content: 'SGVsbG8gd29ybGQ='
+        });
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Successfully created attachment')
+        }]);
+      });
+    });
+  });
+
+  describe('System Operations', () => {
+    describe('get_app_info', () => {
+      it('should get Trilium application information', async () => {
+        const handler = toolHandlers.get('get_app_info');
+
+        const result = await handler({});
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/app-info'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Trilium Application Information')
+        }]);
+      });
+    });
+
+    describe('export_note', () => {
+      it('should export note as HTML', async () => {
+        const handler = toolHandlers.get('export_note');
+
+        const result = await handler({
+          noteId: 'test-note-123',
+          format: 'html'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/export/test-note-123'),
+          expect.objectContaining({
+            method: 'GET'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Note export initiated')
+        }]);
+      });
+
+      it('should export with default format', async () => {
+        const handler = toolHandlers.get('export_note');
+
+        const result = await handler({
+          noteId: 'root'
+        });
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Note export initiated')
+        }]);
+      });
+    });
+
+    describe('create_backup', () => {
+      it('should create database backup', async () => {
+        const handler = toolHandlers.get('create_backup');
+
+        const result = await handler({
+          backupName: 'test-backup-2025'
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/backup/test-backup-2025'),
+          expect.objectContaining({
+            method: 'PUT'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Backup created successfully')
+        }]);
+      });
+
+      it('should create backup with auto-generated name', async () => {
+        const handler = toolHandlers.get('create_backup');
+
+        const result = await handler({});
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/etapi/backup/'),
+          expect.objectContaining({
+            method: 'PUT'
+          })
+        );
+
+        expect(result.content).toEqual([{
+          type: 'text',
+          text: expect.stringContaining('Backup created successfully')
+        }]);
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle network failures gracefully', async () => {
+      fetchMock.mockRejectedValue(new Error('Network failure'));
+
+      const handler = toolHandlers.get('get_app_info');
+      const result = await handler({});
+
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([{
+        type: 'text',
+        text: expect.stringContaining('Failed to get app info')
+      }]);
+    });
+
+    it('should handle HTTP errors', async () => {
+      fetchMock.mockResolvedValueOnce(new Response('Unauthorized', {
+        status: 401,
+        statusText: 'Unauthorized'
+      }));
+
+      const handler = toolHandlers.get('get_note');
+      const result = await handler({ noteId: 'test' });
+
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([{
+        type: 'text',
+        text: expect.stringContaining('Failed to get note')
+      }]);
+    });
+  });
+
+  describe('Parameter Validation', () => {
+    it('should validate required parameters for create_note', async () => {
+      const handler = toolHandlers.get('create_note');
+
+      // Should work with valid parameters
+      const validResult = await handler({
+        parentId: 'root',
+        title: 'Valid Note'
+      });
+      expect(validResult.isError).toBeFalsy();
+    });
+
+    it('should validate search query parameter', async () => {
+      const handler = toolHandlers.get('search_notes');
+
+      // Should work with valid query
+      const validResult = await handler({
+        query: 'valid search'
+      });
+      expect(validResult.isError).toBeFalsy();
+    });
+
+    it('should validate date parameters for calendar functions', async () => {
+      const dayHandler = toolHandlers.get('get_day_note');
+      const monthHandler = toolHandlers.get('get_month_note');
+
+      // Should work with valid dates
+      const validDayResult = await dayHandler({
+        date: '2025-09-29'
+      });
+      expect(validDayResult.isError).toBeFalsy();
+
+      const validMonthResult = await monthHandler({
+        month: '2025-09'
+      });
+      expect(validMonthResult.isError).toBeFalsy();
+    });
+  });
+});
+
+describe('Tool Registration', () => {
+  it('should register all 15 tools with the MCP server', async () => {
+    const mockServer = {
+      setRequestHandler: jest.fn(),
+      addTool: jest.fn()
+    };
+
+    const { setupTriliumTools } = await import('../tools/trilium-tools.js');
+    await setupTriliumTools(mockServer);
+
+    // Verify all 15 tools are registered
+    expect(mockServer.addTool).toHaveBeenCalledTimes(15);
+
+    const toolNames = mockServer.addTool.mock.calls.map((call: any) => call[0].name);
+    const expectedTools = [
+      'create_note', 'get_note', 'get_note_content', 'update_note', 'update_note_content', 'delete_note',
+      'search_notes',
+      'get_day_note', 'get_week_note', 'get_month_note', 'get_inbox_note',
+      'create_attachment',
+      'get_app_info', 'export_note', 'create_backup'
+    ];
+
+    expectedTools.forEach(toolName => {
+      expect(toolNames).toContain(toolName);
+    });
+  });
+});

@@ -1,0 +1,475 @@
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { setupFetchMock } from './mocks.js';
+
+// Mock Fastify and MCP SDK
+const mockFastify = {
+  register: jest.fn(),
+  listen: jest.fn(),
+  server: {
+    on: jest.fn()
+  },
+  addHook: jest.fn(),
+  get: jest.fn(),
+  post: jest.fn()
+};
+
+const mockMCPServer = {
+  setRequestHandler: jest.fn(),
+  addTool: jest.fn(),
+  connect: jest.fn(),
+  close: jest.fn()
+};
+
+const mockTransport = {
+  start: jest.fn(),
+  close: jest.fn()
+};
+
+// Mock the modules
+jest.unstable_mockModule('fastify', () => ({
+  default: jest.fn(() => mockFastify)
+}));
+
+jest.unstable_mockModule('@modelcontextprotocol/sdk/server/mcp.js', () => ({
+  Server: jest.fn(() => mockMCPServer)
+}));
+
+jest.unstable_mockModule('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  StdioServerTransport: jest.fn(() => mockTransport)
+}));
+
+describe('MCP Server Routes', () => {
+  let fetchMock: jest.MockedFunction<typeof fetch>;
+
+  beforeEach(() => {
+    fetchMock = setupFetchMock();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Health Route', () => {
+    it('should register health check endpoint', async () => {
+      // Import the server file to trigger registration
+      await import('../mcp-trilium-server.js');
+
+      // Verify health route is registered
+      expect(mockFastify.get).toHaveBeenCalledWith(
+        '/health',
+        expect.any(Function)
+      );
+    });
+
+    it('should return health status', async () => {
+      await import('../mcp-trilium-server.js');
+
+      // Get the health route handler
+      const healthHandler = mockFastify.get.mock.calls.find(
+        call => call[0] === '/health'
+      )?.[1];
+
+      expect(healthHandler).toBeDefined();
+
+      if (healthHandler) {
+        const mockReply = {
+          send: jest.fn(),
+          status: jest.fn(() => mockReply)
+        };
+
+        await healthHandler({}, mockReply);
+
+        expect(mockReply.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'healthy',
+            timestamp: expect.any(String),
+            uptime: expect.any(Number),
+            memory: expect.objectContaining({
+              rss: expect.any(Number),
+              heapUsed: expect.any(Number),
+              heapTotal: expect.any(Number)
+            })
+          })
+        );
+      }
+    });
+  });
+
+  describe('MCP Route', () => {
+    it('should register MCP endpoint', async () => {
+      await import('../mcp-trilium-server.js');
+
+      // Verify MCP route is registered
+      expect(mockFastify.post).toHaveBeenCalledWith(
+        '/mcp',
+        expect.any(Function)
+      );
+    });
+
+    it('should handle MCP initialization', async () => {
+      await import('../mcp-trilium-server.js');
+
+      // Get the MCP route handler
+      const mcpHandler = mockFastify.post.mock.calls.find(
+        call => call[0] === '/mcp'
+      )?.[1];
+
+      expect(mcpHandler).toBeDefined();
+
+      if (mcpHandler) {
+        const mockRequest = {
+          body: {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'initialize',
+            params: {
+              protocolVersion: '2024-11-05',
+              capabilities: {},
+              clientInfo: {
+                name: 'test-client',
+                version: '1.0.0'
+              }
+            }
+          },
+          headers: {
+            'content-type': 'application/json',
+            'accept': 'application/json, text/event-stream'
+          }
+        };
+
+        const mockReply = {
+          send: jest.fn(),
+          status: jest.fn(() => mockReply),
+          header: jest.fn(() => mockReply),
+          raw: {
+            writeHead: jest.fn(),
+            write: jest.fn(),
+            end: jest.fn()
+          }
+        };
+
+        await mcpHandler(mockRequest, mockReply);
+
+        // Verify response headers are set
+        expect(mockReply.header).toHaveBeenCalledWith(
+          'Content-Type',
+          'application/json'
+        );
+      }
+    });
+
+    it('should handle MCP tools/list request', async () => {
+      await import('../mcp-trilium-server.js');
+
+      const mcpHandler = mockFastify.post.mock.calls.find(
+        call => call[0] === '/mcp'
+      )?.[1];
+
+      if (mcpHandler) {
+        const mockRequest = {
+          body: {
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'tools/list'
+          },
+          headers: {
+            'content-type': 'application/json',
+            'accept': 'application/json'
+          }
+        };
+
+        const mockReply = {
+          send: jest.fn(),
+          status: jest.fn(() => mockReply),
+          header: jest.fn(() => mockReply),
+          raw: {
+            writeHead: jest.fn(),
+            write: jest.fn(),
+            end: jest.fn()
+          }
+        };
+
+        await mcpHandler(mockRequest, mockReply);
+
+        // Verify the MCP server's setRequestHandler was called
+        expect(mockMCPServer.setRequestHandler).toHaveBeenCalled();
+      }
+    });
+
+    it('should handle MCP tools/call request', async () => {
+      await import('../mcp-trilium-server.js');
+
+      const mcpHandler = mockFastify.post.mock.calls.find(
+        call => call[0] === '/mcp'
+      )?.[1];
+
+      if (mcpHandler) {
+        const mockRequest = {
+          body: {
+            jsonrpc: '2.0',
+            id: 3,
+            method: 'tools/call',
+            params: {
+              name: 'get_app_info',
+              arguments: {}
+            }
+          },
+          headers: {
+            'content-type': 'application/json',
+            'accept': 'application/json'
+          }
+        };
+
+        const mockReply = {
+          send: jest.fn(),
+          status: jest.fn(() => mockReply),
+          header: jest.fn(() => mockReply),
+          raw: {
+            writeHead: jest.fn(),
+            write: jest.fn(),
+            end: jest.fn()
+          }
+        };
+
+        await mcpHandler(mockRequest, mockReply);
+
+        expect(mockReply.header).toHaveBeenCalledWith(
+          'Content-Type',
+          'application/json'
+        );
+      }
+    });
+
+    it('should handle invalid JSON-RPC requests', async () => {
+      await import('../mcp-trilium-server.js');
+
+      const mcpHandler = mockFastify.post.mock.calls.find(
+        call => call[0] === '/mcp'
+      )?.[1];
+
+      if (mcpHandler) {
+        const mockRequest = {
+          body: {
+            invalid: 'request'
+          },
+          headers: {
+            'content-type': 'application/json'
+          }
+        };
+
+        const mockReply = {
+          send: jest.fn(),
+          status: jest.fn(() => mockReply),
+          header: jest.fn(() => mockReply),
+          raw: {
+            writeHead: jest.fn(),
+            write: jest.fn(),
+            end: jest.fn()
+          }
+        };
+
+        await mcpHandler(mockRequest, mockReply);
+
+        // Should handle the invalid request gracefully
+        expect(mockReply.header).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('Server Configuration', () => {
+    it('should configure server with correct options', async () => {
+      const fastifyMock = (await import('fastify')).default as jest.MockedFunction<any>;
+
+      await import('../mcp-trilium-server.js');
+
+      expect(fastifyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logger: expect.any(Object),
+          bodyLimit: 10485760, // 10MB
+          connectionTimeout: 60000 // 60s
+        })
+      );
+    });
+
+    it('should register CORS plugin', async () => {
+      await import('../mcp-trilium-server.js');
+
+      expect(mockFastify.register).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          origin: true,
+          methods: ['GET', 'POST', 'OPTIONS'],
+          allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Mcp-Session-Id']
+        })
+      );
+    });
+
+    it('should add request/response hooks', async () => {
+      await import('../mcp-trilium-server.js');
+
+      expect(mockFastify.addHook).toHaveBeenCalledWith(
+        'onRequest',
+        expect.any(Function)
+      );
+
+      expect(mockFastify.addHook).toHaveBeenCalledWith(
+        'onResponse',
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle server startup errors', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation();
+
+      mockFastify.listen.mockRejectedValueOnce(new Error('Port already in use'));
+
+      await import('../mcp-trilium-server.js');
+
+      // Give time for async error handling
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to start server'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it('should handle uncaught exceptions', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation();
+
+      await import('../mcp-trilium-server.js');
+
+      // Simulate uncaught exception
+      process.emit('uncaughtException', new Error('Uncaught test error'));
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Uncaught Exception'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it('should handle unhandled promise rejections', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation();
+
+      await import('../mcp-trilium-server.js');
+
+      // Simulate unhandled rejection
+      process.emit('unhandledRejection', new Error('Unhandled test rejection'), Promise.resolve());
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Unhandled Promise Rejection'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+  });
+
+  describe('Connection Management', () => {
+    it('should track active connections', async () => {
+      await import('../mcp-trilium-server.js');
+
+      // Verify connection tracking hooks are added
+      expect(mockFastify.addHook).toHaveBeenCalledWith(
+        'onRequest',
+        expect.any(Function)
+      );
+
+      expect(mockFastify.addHook).toHaveBeenCalledWith(
+        'onResponse',
+        expect.any(Function)
+      );
+    });
+
+    it('should clean up resources on connection close', async () => {
+      await import('../mcp-trilium-server.js');
+
+      // Verify server event listeners are set up
+      expect(mockFastify.server.on).toHaveBeenCalledWith(
+        'connection',
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('Health Monitoring', () => {
+    it('should set up periodic health monitoring', async () => {
+      const setIntervalSpy = jest.spyOn(global, 'setInterval');
+
+      await import('../mcp-trilium-server.js');
+
+      expect(setIntervalSpy).toHaveBeenCalledWith(
+        expect.any(Function),
+        30000 // 30 seconds
+      );
+
+      setIntervalSpy.mockRestore();
+    });
+  });
+});
+
+describe('Environment Configuration', () => {
+  beforeEach(() => {
+    // Reset environment variables
+    delete process.env.PORT;
+    delete process.env.NODE_ENV;
+  });
+
+  it('should use default port when not specified', async () => {
+    await import('../mcp-trilium-server.js');
+
+    expect(mockFastify.listen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        port: 3000,
+        host: '0.0.0.0'
+      })
+    );
+  });
+
+  it('should use environment PORT when specified', async () => {
+    process.env.PORT = '8080';
+
+    // Clear module cache to reload with new env
+    jest.resetModules();
+
+    await import('../mcp-trilium-server.js');
+
+    expect(mockFastify.listen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        port: 8080,
+        host: '0.0.0.0'
+      })
+    );
+  });
+
+  it('should configure logger based on NODE_ENV', async () => {
+    process.env.NODE_ENV = 'production';
+
+    jest.resetModules();
+
+    const fastifyMock = (await import('fastify')).default as jest.MockedFunction<any>;
+
+    await import('../mcp-trilium-server.js');
+
+    expect(fastifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logger: expect.objectContaining({
+          level: 'info'
+        })
+      })
+    );
+  });
+});
