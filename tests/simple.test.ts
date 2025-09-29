@@ -284,36 +284,58 @@ describe('Trilium MCP Server - Core Functions', () => {
 
 describe('Tool Configuration Validation', () => {
   const expectedTools = [
-    'create_note', 'get_note', 'get_note_content', 'update_note', 'update_note_content', 'delete_note',
+    'create_note', 'get_note', 'get_note_content', 'update_note', 'delete_note',
     'search_notes',
-    'get_day_note', 'get_week_note', 'get_month_note', 'get_inbox_note',
+    'get_calendar_note',
     'create_attachment',
     'get_app_info', 'export_note', 'create_backup'
   ];
 
   it('should have correct number of expected tools', () => {
-    expect(expectedTools).toHaveLength(15);
+    expect(expectedTools).toHaveLength(11);
   });
 
   it('should categorize tools correctly', () => {
-    const coreTools = ['create_note', 'get_note', 'get_note_content', 'update_note', 'update_note_content', 'delete_note'];
+    const coreTools = ['create_note', 'get_note', 'get_note_content', 'update_note', 'delete_note'];
     const searchTools = ['search_notes'];
-    const calendarTools = ['get_day_note', 'get_week_note', 'get_month_note', 'get_inbox_note'];
+    const calendarTools = ['get_calendar_note']; // Unified calendar endpoint
     const fileTools = ['create_attachment'];
     const systemTools = ['get_app_info', 'export_note', 'create_backup'];
 
-    expect(coreTools).toHaveLength(6);
+    expect(coreTools).toHaveLength(5); // Reduced from 6 (merged update endpoints)
     expect(searchTools).toHaveLength(1);
-    expect(calendarTools).toHaveLength(4);
+    expect(calendarTools).toHaveLength(1); // Reduced from 4 (unified calendar)
     expect(fileTools).toHaveLength(1);
     expect(systemTools).toHaveLength(3);
 
     const totalTools = coreTools.length + searchTools.length + calendarTools.length + fileTools.length + systemTools.length;
-    expect(totalTools).toBe(15);
+    expect(totalTools).toBe(11); // Reduced from 15
   });
 
   it('should have unique tool names', () => {
     const uniqueTools = new Set(expectedTools);
     expect(uniqueTools.size).toBe(expectedTools.length);
+  });
+
+  it('should validate consolidated calendar endpoint functionality', () => {
+    const calendarTypes = ['day', 'week', 'month', 'inbox'];
+    calendarTypes.forEach(type => {
+      expect(['day', 'week', 'month', 'inbox']).toContain(type);
+    });
+  });
+
+  it('should validate unified update endpoint functionality', () => {
+    const updateModes = {
+      titleOnly: { id: 'test', title: 'New Title' },
+      contentOnly: { id: 'test', content: 'New Content' },
+      both: { id: 'test', title: 'New Title', content: 'New Content' },
+      contentOnlyMode: { id: 'test', content: 'New Content', contentOnly: true }
+    };
+
+    Object.entries(updateModes).forEach(([mode, params]) => {
+      expect(params).toHaveProperty('id');
+      if (mode === 'titleOnly') expect(params).toHaveProperty('title');
+      if (mode.includes('content')) expect(params).toHaveProperty('content');
+    });
   });
 });

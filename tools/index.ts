@@ -5,17 +5,13 @@ import { registerCreateNote } from "./core/create-note.js";
 import { registerGetNote } from "./core/get-note.js";
 import { registerGetNoteContent } from "./core/get-note-content.js";
 import { registerUpdateNote } from "./core/update-note.js";
-import { registerUpdateNoteContent } from "./core/update-note-content.js";
 import { registerDeleteNote } from "./core/delete-note.js";
 
 // Search operations
 import { registerSearchNotes } from "./search/search-notes.js";
 
-// Calendar operations
-import { registerGetDayNote } from "./calendar/get-day-note.js";
-import { registerGetWeekNote } from "./calendar/get-week-note.js";
-import { registerGetMonthNote } from "./calendar/get-month-note.js";
-import { registerGetInboxNote } from "./calendar/get-inbox-note.js";
+// Calendar operations (unified)
+import { registerGetCalendarNote } from "./calendar/get-calendar-note.js";
 
 // File operations
 import { registerCreateAttachment } from "./files/create-attachment.js";
@@ -32,17 +28,13 @@ export function registerTools(server: McpServer) {
   registerGetNote(server);
   registerGetNoteContent(server);
   registerUpdateNote(server);
-  registerUpdateNoteContent(server);
   registerDeleteNote(server);
 
   // Register search operations
   registerSearchNotes(server);
 
-  // Register calendar operations
-  registerGetDayNote(server);
-  registerGetWeekNote(server);
-  registerGetMonthNote(server);
-  registerGetInboxNote(server);
+  // Register unified calendar operations
+  registerGetCalendarNote(server);
 
   // Register file operations
   registerCreateAttachment(server);
