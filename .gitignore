@@ -3,3 +3,8 @@ localhost-cert.pem localhost-key.pem
 .env
 node_modules/
 coverage/
+
+# BFG Repo-Cleaner files
+bfg.jar
+replacements.txt
+*.bfg-report/
