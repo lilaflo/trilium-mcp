@@ -1,0 +1,86 @@
+{
+  "mcpServers": {
+    "trilium-notes": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "https://your-trilium-server.example.com/mcp",
+        "-H", "Content-Type: application/json",
+        "-H", "Accept: application/json, text/event-stream",
+        "-d", "@-"
+      ],
+      "description": "Trilium Notes MCP Server - Comprehensive note management with 15+ tools for creating, searching, updating, and organizing notes in Trilium",
+      "capabilities": {
+        "tools": [
+          {
+            "name": "create_note",
+            "description": "Create a new note with title, content, and parent structure"
+          },
+          {
+            "name": "search_notes",
+            "description": "Search through notes with structured results and filtering"
+          },
+          {
+            "name": "get_note",
+            "description": "Retrieve complete note metadata and relationships"
+          },
+          {
+            "name": "update_note",
+            "description": "Update note title and metadata"
+          },
+          {
+            "name": "get_note_content",
+            "description": "Get the raw HTML content of a note"
+          },
+          {
+            "name": "update_note_content",
+            "description": "Update the HTML content of a note directly"
+          },
+          {
+            "name": "delete_note",
+            "description": "Delete a note by its ID"
+          },
+          {
+            "name": "get_day_note",
+            "description": "Get or create a day note for calendar integration"
+          },
+          {
+            "name": "get_week_note",
+            "description": "Get or create a week note for calendar integration"
+          },
+          {
+            "name": "get_month_note",
+            "description": "Get or create a month note for calendar integration"
+          },
+          {
+            "name": "get_inbox_note",
+            "description": "Get the inbox note for a specific date"
+          },
+          {
+            "name": "create_attachment",
+            "description": "Create an attachment for a note"
+          },
+          {
+            "name": "get_app_info",
+            "description": "Get information about the running Trilium instance"
+          },
+          {
+            "name": "export_note",
+            "description": "Export a note subtree as ZIP file"
+          },
+          {
+            "name": "create_backup",
+            "description": "Create a database backup with a given name"
+          }
+        ]
+      },
+      "metadata": {
+        "version": "1.0.0",
+        "author": "Claude Code",
+        "url": "https://your-trilium-server.example.com",
+        "repository": "trilium-mcp",
+        "documentation": "Comprehensive Trilium Notes integration via ETAPI with verbose logging and error handling"
+      }
+    }
+  }
+}

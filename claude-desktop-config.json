@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "trilium": {
+      "command": "node",
+      "args": [
+        "-e",
+        "const https = require('https'); const http = require('http'); process.stdin.setEncoding('utf8'); let input = ''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => { const options = { hostname: 'your-trilium-server.example.com', port: 443, path: '/mcp', method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream', 'Content-Length': Buffer.byteLength(input) } }; const req = https.request(options, res => { res.on('data', chunk => process.stdout.write(chunk)); }); req.write(input); req.end(); });"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}

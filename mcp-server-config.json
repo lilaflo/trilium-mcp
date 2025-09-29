@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "trilium": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "https://your-trilium-server.example.com/mcp",
+        "-H", "Content-Type: application/json",
+        "-H", "Accept: application/json, text/event-stream",
+        "--data-binary", "@-"
+      ]
+    }
+  }
+}
