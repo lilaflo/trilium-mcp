@@ -2,7 +2,7 @@
 
 A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://github.com/TriliumNext/Trilium) integration, providing complete note management functionality through MCP-compatible AI clients.
 
-🚀 **Production Ready** • 🔧 **15 API Endpoints** • 📊 **Comprehensive Testing** • 🏥 **Health Monitoring**
+🚀 **Production Ready** • 🔧 **12 API Endpoints** • 📊 **Comprehensive Testing** • 🏥 **Health Monitoring**
 
 **Live Server**: https://your-trilium-server.example.com/mcp
 
@@ -17,7 +17,7 @@ A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://
 - **Verbose Logging**: Comprehensive request tracking and health monitoring
 - **Production Deployment**: HTTPS endpoint with authentication and error handling
 
-## 🎯 API Endpoints (15 Total)
+## 🎯 API Endpoints (12 Total)
 
 ### ✅ Core Note Operations (6 endpoints)
 
@@ -132,6 +132,32 @@ Update the HTML content of a note directly.
   }
 }
 ```
+
+#### 5. `move_note` - Move Notes
+
+Move a note to a different parent in the note tree structure.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "move_note",
+    "arguments": {
+      "noteId": "SeJAf97IhUVM",
+      "parentId": "8BQtwgpvcO3d",
+      "position": 10
+    }
+  }
+}
+```
+
+**Parameters:**
+
+- `noteId` (string): ID of the note to move
+- `parentId` (string): ID of the new parent note
+- `position` (number, optional): Position under the new parent
 
 #### 6. `delete_note` - Delete Notes
 

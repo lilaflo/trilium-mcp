@@ -6,6 +6,7 @@ import { registerGetNote } from "./core/get-note.ts";
 import { registerGetNoteContent } from "./core/get-note-content.ts";
 import { registerUpdateNote } from "./core/update-note.ts";
 import { registerDeleteNote } from "./core/delete-note.ts";
+import { registerMoveNote } from "./core/move-note.ts";
 
 // Search operations
 import { registerSearchNotes } from "./search/search-notes.ts";
@@ -29,6 +30,7 @@ export function registerTools(server: McpServer) {
   registerGetNoteContent(server);
   registerUpdateNote(server);
   registerDeleteNote(server);
+  registerMoveNote(server);
 
   // Register search operations
   registerSearchNotes(server);

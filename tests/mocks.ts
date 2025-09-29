@@ -88,7 +88,27 @@ export const mockEtapiResponses = {
     mime: 'text/plain',
     size: 24,
     isDeleted: false
-  }
+  },
+
+  // Move note related mocks
+  getNoteBranches: [
+    {
+      branchId: 'branch-123',
+      noteId: 'test-note-123',
+      parentId: 'old-parent-456',
+      position: 10,
+      isExpanded: false
+    }
+  ],
+
+  createBranch: {
+    branchId: 'branch-456',
+    noteId: 'test-note-123',
+    parentId: 'new-parent-789',
+    position: 5
+  },
+
+  deleteBranch: {}
 };
 
 // Mock fetch function for ETAPI calls
@@ -126,6 +146,15 @@ export function mockFetch(url: string, options?: RequestInit): Promise<Response>
     // Mock binary ZIP response
     const mockZipData = new Uint8Array([80, 75, 3, 4]); // ZIP file header
     fetchMock.mockResolvedValueOnce(createMockResponse(mockZipData, 'application/zip'));
+  } else if (url.includes('/branches') && options?.method === 'GET' && url.includes('/notes/')) {
+    // GET /notes/{noteId}/branches
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockEtapiResponses.getNoteBranches));
+  } else if (url.includes('/etapi/branches') && options?.method === 'POST') {
+    // POST /branches (create branch)
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockEtapiResponses.createBranch));
+  } else if (url.includes('/etapi/branches/') && options?.method === 'DELETE') {
+    // DELETE /branches/{branchId}
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockEtapiResponses.deleteBranch, 'text/plain', 204));
   } else {
     // Default 404 for unknown endpoints
     fetchMock.mockRejectedValueOnce(new Error('Not Found'));

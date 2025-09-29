@@ -52,6 +52,26 @@ describe('Trilium MCP Server - Core Functions', () => {
         nodeVersion: expect.any(String)
       });
     });
+
+    it('should have mock data for move note branches', () => {
+      expect(Array.isArray(mockEtapiResponses.getNoteBranches)).toBe(true);
+      expect(mockEtapiResponses.getNoteBranches.length).toBeGreaterThan(0);
+      expect(mockEtapiResponses.getNoteBranches[0]).toMatchObject({
+        branchId: expect.any(String),
+        noteId: expect.any(String),
+        parentId: expect.any(String),
+        position: expect.any(Number)
+      });
+    });
+
+    it('should have mock data for branch creation', () => {
+      expect(mockEtapiResponses.createBranch).toMatchObject({
+        branchId: expect.any(String),
+        noteId: expect.any(String),
+        parentId: expect.any(String),
+        position: expect.any(Number)
+      });
+    });
   });
 
   describe('Fetch Mock Functionality', () => {
@@ -284,7 +304,7 @@ describe('Trilium MCP Server - Core Functions', () => {
 
 describe('Tool Configuration Validation', () => {
   const expectedTools = [
-    'create_note', 'get_note', 'get_note_content', 'update_note', 'delete_note',
+    'create_note', 'get_note', 'get_note_content', 'update_note', 'move_note', 'delete_note',
     'search_notes',
     'get_calendar_note',
     'create_attachment',
@@ -292,24 +312,24 @@ describe('Tool Configuration Validation', () => {
   ];
 
   it('should have correct number of expected tools', () => {
-    expect(expectedTools).toHaveLength(11);
+    expect(expectedTools).toHaveLength(12);
   });
 
   it('should categorize tools correctly', () => {
-    const coreTools = ['create_note', 'get_note', 'get_note_content', 'update_note', 'delete_note'];
+    const coreTools = ['create_note', 'get_note', 'get_note_content', 'update_note', 'move_note', 'delete_note'];
     const searchTools = ['search_notes'];
     const calendarTools = ['get_calendar_note']; // Unified calendar endpoint
     const fileTools = ['create_attachment'];
     const systemTools = ['get_app_info', 'export_note', 'create_backup'];
 
-    expect(coreTools).toHaveLength(5); // Reduced from 6 (merged update endpoints)
+    expect(coreTools).toHaveLength(6); // Core note operations including move_note
     expect(searchTools).toHaveLength(1);
     expect(calendarTools).toHaveLength(1); // Reduced from 4 (unified calendar)
     expect(fileTools).toHaveLength(1);
     expect(systemTools).toHaveLength(3);
 
     const totalTools = coreTools.length + searchTools.length + calendarTools.length + fileTools.length + systemTools.length;
-    expect(totalTools).toBe(11); // Reduced from 15
+    expect(totalTools).toBe(12); // Total tools with move_note added
   });
 
   it('should have unique tool names', () => {
