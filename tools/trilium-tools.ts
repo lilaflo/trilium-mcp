@@ -67,7 +67,7 @@ export function registerTools(server: McpServer) {
       },
     },
     async ({ parentId, title, content, type }) => {
-      const note = await etapi("/notes", {
+      const note = await etapi("/create-note", {
         method: "POST",
         body: JSON.stringify({
           parentNoteId: parentId,
