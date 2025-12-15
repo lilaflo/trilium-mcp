@@ -2,9 +2,10 @@
 
 A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://github.com/TriliumNext/Trilium) integration, providing complete note management functionality through MCP-compatible AI clients.
 
-🚀 **Production Ready** • 🔧 **12 API Endpoints** • 📊 **Comprehensive Testing** • 🏥 **Health Monitoring**
+🚀 **Production Ready** • 🔧 **15 API Endpoints** • 📊 **Comprehensive Testing** • 🏥 **Health Monitoring** • 📚 **Interactive API Docs**
 
 **Live Server**: https://your-trilium-server.example.com/mcp
+**API Documentation**: https://your-trilium-server.example.com/docs
 
 ## ✨ Features
 
@@ -14,10 +15,21 @@ A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://
 - **Advanced Search**: Full-text search with filtering and structured results
 - **File Attachments**: Base64-encoded file attachment support
 - **System Operations**: Backup creation, export functionality, and system info
+- **Interactive API Documentation**: Beautiful HTML docs with examples and OpenAPI JSON export
 - **Verbose Logging**: Comprehensive request tracking and health monitoring
 - **Production Deployment**: HTTPS endpoint with authentication and error handling
 
-## 🎯 API Endpoints (12 Total)
+## 📚 API Documentation
+
+**Interactive Documentation**: Visit `/docs` for complete API documentation with:
+- All 15 endpoints organized by category
+- Request/response examples
+- Parameter descriptions with types and constraints
+- Known issues and workarounds
+- OpenAPI 3.0 JSON export at `/docs/json`
+- **MCP Manifest** at `/mcp.json` (JSON-RPC `tools/list` format)
+
+## 🎯 API Endpoints (15 Total)
 
 ### ✅ Core Note Operations (6 endpoints)
 
@@ -540,6 +552,15 @@ curl http://localhost:3000/health
 ```bash
 # View server health
 curl https://my-own-trilium-mcp.fly.dev/health
+
+# View API documentation
+curl https://my-own-trilium-mcp.fly.dev/docs
+
+# Get OpenAPI JSON spec
+curl https://my-own-trilium-mcp.fly.dev/docs/json
+
+# Get MCP Manifest (tools/list format)
+curl https://my-own-trilium-mcp.fly.dev/mcp.json
 
 # Monitor deployment logs
 fly logs -a your-app-name

@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import fastifyCors from "@fastify/cors";
 import healthRoutes from "./routes/health.ts";
 import mcpRoutes from "./routes/mcp.ts";
+import docsRoutes from "./routes/docs.ts";
 
 // Global connection tracking
 let activeConnections = 0;
@@ -83,6 +84,7 @@ async function initializeServer() {
   // Register route modules
   await fastify.register(healthRoutes);
   await fastify.register(mcpRoutes);
+  await fastify.register(docsRoutes);
 
   // Start HTTP server
   const PORT = Number(process.env.PORT) || 3000;

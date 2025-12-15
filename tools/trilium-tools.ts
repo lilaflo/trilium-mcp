@@ -23,50 +23,96 @@ async function etapi(path: string, init: ETAPIOptions = {}): Promise<any> {
   };
 
   const url = `${ETAPI_BASE}${path}`;
-  console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Starting ${init.method || "GET"} request to ${url}`);
-  console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request headers:`, JSON.stringify(headers, null, 2));
+  console.debug(
+    `[${new Date().toISOString()}] [ETAPI-${requestId}] Starting ${
+      init.method || "GET"
+    } request to ${url}`
+  );
+  console.debug(
+    `[${new Date().toISOString()}] [ETAPI-${requestId}] Request headers:`,
+    JSON.stringify(headers, null, 2)
+  );
   if (init.body) {
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request body:`, init.body);
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Request body:`,
+      init.body
+    );
   }
 
   try {
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Making fetch request`);
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Making fetch request`
+    );
     const res = await fetch(url, {
       ...init,
       headers,
     });
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Fetch completed with status: ${res.status} ${res.statusText}`);
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Fetch completed with status: ${
+        res.status
+      } ${res.statusText}`
+    );
 
     if (!res.ok) {
       const errorText = await res.text();
       const endTime = Date.now();
-      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI error after ${endTime - startTime}ms: ${res.status} ${errorText}`);
+      console.error(
+        `[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI error after ${
+          endTime - startTime
+        }ms: ${res.status} ${errorText}`
+      );
       throw new Error(`ETAPI request failed: ${res.status} ${errorText}`);
     }
 
     // Handle content endpoints that return plain text/html
-    if (path.includes('/content')) {
-      console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as text (content endpoint)`);
+    if (path.includes("/content")) {
+      console.debug(
+        `[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as text (content endpoint)`
+      );
       const textResult = await res.text();
       const endTime = Date.now();
-      console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${endTime - startTime}ms, response length: ${textResult.length} chars`);
+      console.debug(
+        `[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${
+          endTime - startTime
+        }ms, response length: ${textResult.length} chars`
+      );
       return textResult;
     }
 
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as JSON`);
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Parsing response as JSON`
+    );
     const jsonResult = await res.json();
     const endTime = Date.now();
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${endTime - startTime}ms`);
-    console.log(`[${new Date().toISOString()}] [ETAPI-${requestId}] Response data:`, JSON.stringify(jsonResult, null, 2));
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Request completed successfully in ${
+        endTime - startTime
+      }ms`
+    );
+    console.debug(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Response data:`,
+      JSON.stringify(jsonResult, null, 2)
+    );
     return jsonResult;
   } catch (error) {
     const endTime = Date.now();
     if (error instanceof Error) {
-      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI request failed after ${endTime - startTime}ms: ${error.message}`);
-      console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] Error stack:`, error.stack);
+      console.error(
+        `[${new Date().toISOString()}] [ETAPI-${requestId}] ETAPI request failed after ${
+          endTime - startTime
+        }ms: ${error.message}`
+      );
+      console.error(
+        `[${new Date().toISOString()}] [ETAPI-${requestId}] Error stack:`,
+        error.stack
+      );
       throw error;
     }
-    console.error(`[${new Date().toISOString()}] [ETAPI-${requestId}] Unknown error occurred during ETAPI request after ${endTime - startTime}ms`);
+    console.error(
+      `[${new Date().toISOString()}] [ETAPI-${requestId}] Unknown error occurred during ETAPI request after ${
+        endTime - startTime
+      }ms`
+    );
     throw new Error("Unknown error occurred during ETAPI request");
   }
 }
@@ -222,18 +268,27 @@ export function registerTools(server: McpServer) {
         const note = await etapi(`/notes/${noteId}`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get note",
-              message: errorMessage,
-              noteId: noteId,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(note, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get note",
+                  message: errorMessage,
+                  noteId: noteId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -253,18 +308,35 @@ export function registerTools(server: McpServer) {
         await etapi(`/notes/${noteId}`, {
           method: "DELETE",
         });
-        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Note ${noteId} deleted successfully` }) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to delete note",
-              message: errorMessage,
-              noteId: noteId,
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                message: `Note ${noteId} deleted successfully`,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to delete note",
+                  message: errorMessage,
+                  noteId: noteId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -284,18 +356,32 @@ export function registerTools(server: McpServer) {
         const content = await etapi(`/notes/${noteId}/content`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify({ noteId, content }, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get note content",
-              message: errorMessage,
-              noteId: noteId,
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ noteId, content }, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get note content",
+                  message: errorMessage,
+                  noteId: noteId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -320,18 +406,35 @@ export function registerTools(server: McpServer) {
           },
           body: content,
         });
-        return { content: [{ type: "text", text: JSON.stringify({ success: true, message: `Content updated for note ${noteId}` }) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to update note content",
-              message: errorMessage,
-              noteId: noteId,
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                message: `Content updated for note ${noteId}`,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to update note content",
+                  message: errorMessage,
+                  noteId: noteId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -343,7 +446,9 @@ export function registerTools(server: McpServer) {
     {
       description: "Get or create a day note for a specific date",
       inputSchema: {
-        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+        date: z
+          .string()
+          .describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
       },
     },
     async ({ date }) => {
@@ -351,18 +456,27 @@ export function registerTools(server: McpServer) {
         const note = await etapi(`/calendar/days/${date}`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get day note",
-              message: errorMessage,
-              date: date,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(note, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get day note",
+                  message: errorMessage,
+                  date: date,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -374,7 +488,9 @@ export function registerTools(server: McpServer) {
     {
       description: "Get or create a week note for a specific date",
       inputSchema: {
-        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+        date: z
+          .string()
+          .describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
       },
     },
     async ({ date }) => {
@@ -382,18 +498,27 @@ export function registerTools(server: McpServer) {
         const note = await etapi(`/calendar/weeks/${date}`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get week note",
-              message: errorMessage,
-              date: date,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(note, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get week note",
+                  message: errorMessage,
+                  date: date,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -413,18 +538,27 @@ export function registerTools(server: McpServer) {
         const note = await etapi(`/calendar/months/${month}`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get month note",
-              message: errorMessage,
-              month: month,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(note, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get month note",
+                  message: errorMessage,
+                  month: month,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -436,7 +570,9 @@ export function registerTools(server: McpServer) {
     {
       description: "Get the inbox note for a specific date",
       inputSchema: {
-        date: z.string().describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
+        date: z
+          .string()
+          .describe("Date in YYYY-MM-DD format (e.g., 2025-01-15)"),
       },
     },
     async ({ date }) => {
@@ -444,18 +580,27 @@ export function registerTools(server: McpServer) {
         const note = await etapi(`/inbox/${date}`, {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(note, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get inbox note",
-              message: errorMessage,
-              date: date,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(note, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get inbox note",
+                  message: errorMessage,
+                  date: date,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -467,11 +612,21 @@ export function registerTools(server: McpServer) {
     {
       description: "Create an attachment for a note",
       inputSchema: {
-        ownerId: z.string().describe("ID of the note that will own this attachment"),
+        ownerId: z
+          .string()
+          .describe("ID of the note that will own this attachment"),
         title: z.string().describe("Title/filename of the attachment"),
-        role: z.string().default("file").describe("Role of the attachment (default: file)"),
-        mime: z.string().default("text/plain").describe("MIME type of the attachment"),
-        content: z.string().describe("Content of the attachment (base64 for binary files)"),
+        role: z
+          .string()
+          .default("file")
+          .describe("Role of the attachment (default: file)"),
+        mime: z
+          .string()
+          .default("text/plain")
+          .describe("MIME type of the attachment"),
+        content: z
+          .string()
+          .describe("Content of the attachment (base64 for binary files)"),
         position: z.number().optional().describe("Position of the attachment"),
       },
     },
@@ -488,18 +643,29 @@ export function registerTools(server: McpServer) {
             position,
           }),
         });
-        return { content: [{ type: "text", text: JSON.stringify(attachment, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to create attachment",
-              message: errorMessage,
-              ownerId: ownerId,
-            }, null, 2)
-          }],
+          content: [
+            { type: "text", text: JSON.stringify(attachment, null, 2) },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to create attachment",
+                  message: errorMessage,
+                  ownerId: ownerId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -517,17 +683,26 @@ export function registerTools(server: McpServer) {
         const info = await etapi("/app-info", {
           method: "GET",
         });
-        return { content: [{ type: "text", text: JSON.stringify(info, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to get app info",
-              message: errorMessage,
-            }, null, 2)
-          }],
+          content: [{ type: "text", text: JSON.stringify(info, null, 2) }],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to get app info",
+                  message: errorMessage,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -539,32 +714,58 @@ export function registerTools(server: McpServer) {
     {
       description: "Export a note subtree as ZIP file",
       inputSchema: {
-        noteId: z.string().describe("ID of the note to export (use 'root' for full export)"),
-        format: z.enum(["html", "markdown"]).default("html").describe("Export format"),
+        noteId: z
+          .string()
+          .describe("ID of the note to export (use 'root' for full export)"),
+        format: z
+          .enum(["html", "markdown"])
+          .default("html")
+          .describe("Export format"),
       },
     },
     async ({ noteId, format }) => {
       try {
-        const exportData = await etapi(`/notes/${noteId}/export?format=${format}`, {
-          method: "GET",
-        });
-        return { content: [{ type: "text", text: JSON.stringify({
-          success: true,
-          message: `Export completed for note ${noteId}`,
-          format: format,
-          // Note: In a real implementation, you'd want to handle the binary ZIP data appropriately
-        }, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        const exportData = await etapi(
+          `/notes/${noteId}/export?format=${format}`,
+          {
+            method: "GET",
+          }
+        );
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to export note",
-              message: errorMessage,
-              noteId: noteId,
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: true,
+                  message: `Export completed for note ${noteId}`,
+                  format: format,
+                  // Note: In a real implementation, you'd want to handle the binary ZIP data appropriately
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to export note",
+                  message: errorMessage,
+                  noteId: noteId,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
@@ -576,7 +777,9 @@ export function registerTools(server: McpServer) {
     {
       description: "Create a database backup with a given name",
       inputSchema: {
-        backupName: z.string().describe("Name for the backup (will create backup-{name}.db)"),
+        backupName: z
+          .string()
+          .describe("Name for the backup (will create backup-{name}.db)"),
       },
     },
     async ({ backupName }) => {
@@ -584,22 +787,40 @@ export function registerTools(server: McpServer) {
         await etapi(`/backup/${backupName}`, {
           method: "PUT",
         });
-        return { content: [{ type: "text", text: JSON.stringify({
-          success: true,
-          message: `Backup created: backup-${backupName}.db`,
-          backupName: backupName,
-        }, null, 2) }] };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              error: "Failed to create backup",
-              message: errorMessage,
-              backupName: backupName,
-            }, null, 2)
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  success: true,
+                  message: `Backup created: backup-${backupName}.db`,
+                  backupName: backupName,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error occurred";
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  error: "Failed to create backup",
+                  message: errorMessage,
+                  backupName: backupName,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
     }
