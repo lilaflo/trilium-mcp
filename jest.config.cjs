@@ -21,10 +21,12 @@ module.exports = {
       useESM: true,
       tsconfig: {
         esModuleInterop: true,
-        allowSyntheticDefaultImports: true
+        allowSyntheticDefaultImports: true,
+        isolatedModules: true
       }
     }]
   },
+  coverageProvider: 'v8',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'

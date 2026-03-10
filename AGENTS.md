@@ -157,3 +157,34 @@ SESSION_TTL=10m pnpm start  # 10 minute session timeout
 1. `get_week_note` requires ISO week format `"2025-W39"` not `"2025-09-29"`
 2. `export_note` returns binary ZIP but expects JSON handling
 3. `create_backup` returns empty response, needs special handling
+
+## Dependencies
+
+### Jest & Testing
+- Jest 30.x requires pnpm overrides for babel-plugin-istanbul and test-exclude:
+```json
+"pnpm": {
+  "overrides": {
+    "babel-plugin-istanbul": "^7.0.0",
+    "test-exclude": "^7.0.0"
+  }
+}
+```
+This fixes ESM compatibility issues with coverage instrumentation.
+
+## Test Coverage
+
+### Test Files
+- `tests/session.test.ts` - 26 tests for session management
+- `tests/docs.test.ts` - 20 tests for API documentation routes
+- `tests/simple.test.ts` - 29 tests for core functionality
+- `tests/tools/core/etapi-utils.test.ts` - 24 tests for ETAPI utilities & schemas
+- `tests/tools/search/search-notes.test.ts` - 20 tests for search
+- `tests/tools/calendar/get-calendar-note.test.ts` - 19 tests for calendar
+- `tests/tools/files/create-attachment.test.ts` - 24 tests for attachments
+- `tests/tools/system/system-tools.test.ts` - 28 tests for system tools
+
+### Coverage Targets
+- `docs.ts`: 100%
+- `session-manager.ts`: 96%
+- Overall: 99%+

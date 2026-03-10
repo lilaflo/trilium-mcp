@@ -2,7 +2,7 @@
 
 A comprehensive Model Context Protocol (MCP) server for [Trilium Notes](https://github.com/TriliumNext/Trilium) integration, providing complete note management functionality through MCP-compatible AI clients.
 
-🚀 **Production Ready** • 🔧 **15 API Endpoints** • 📊 **Comprehensive Testing** • 🏥 **Health Monitoring** • 📚 **Interactive API Docs**
+🚀 **Production Ready** • 🔧 **15 API Endpoints** • 📊 **208 Tests** • 🏥 **Health Monitoring** • 📚 **Interactive API Docs**
 
 **Live Server**: https://your-trilium-server.example.com/mcp
 **API Documentation**: https://your-trilium-server.example.com/docs
