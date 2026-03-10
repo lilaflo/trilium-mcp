@@ -125,6 +125,18 @@ Optional:
 - DNS rebinding protection enabled (`enableDnsRebindingProtection: true`)
 - DELETE endpoint properly terminates sessions and cleans up resources
 
+#### Session Expiration
+- `SESSION_TTL` - Session lifetime (default: 5m, format: `30s`, `5m`, `1h`)
+- Sessions automatically expire after TTL and are invalidated on next access
+- Secure UUIDs used for session IDs (fallback to Math.random if crypto unavailable)
+- Session ID validation: 16-128 characters required
+- Rate limiting: max 1 new session per 5 seconds (returns 429)
+
+Example:
+```bash
+SESSION_TTL=10m pnpm start  # 10 minute session timeout
+```
+
 ### Tool Organization
 - Core tools: `tools/core/` (create, get, update, delete notes)
 - Search: `tools/search/` (search-notes)
