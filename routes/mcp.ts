@@ -1,110 +1,123 @@
 import type { FastifyInstance } from "fastify";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { registerTools } from "../tools/index.ts";
+import { registerTools } from "../tools/index.js";
+import { formatError } from "../tools/etapi.js";
 import packageJson from "../package.json" with { type: "json" };
 
+interface SessionTransport {
+  transport: StreamableHTTPServerTransport;
+  server: McpServer;
+}
+
+const sessions = new Map<string, SessionTransport>();
+
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+}
+
 export default async function mcpRoutes(fastify: FastifyInstance) {
-  // Handle POST requests for client-to-server communication (stateless)
   fastify.post("/mcp", async (request, reply) => {
     const requestId = Math.random().toString(36).substring(2, 15);
     const startTime = Date.now();
+    const sessionId = request.headers["mcp-session-id"] as string | undefined;
 
-    console.log(`[${new Date().toISOString()}] [${requestId}] MCP POST request received`);
-    console.log(`[${new Date().toISOString()}] [${requestId}] Request headers:`, JSON.stringify(request.headers, null, 2));
-    console.log(`[${new Date().toISOString()}] [${requestId}] Request body:`, JSON.stringify(request.body, null, 2));
+    console.debug(`[${new Date().toISOString()}] [${requestId}] MCP POST request received, session: ${sessionId || 'new'}`);
 
     try {
-      // Create new instances for each request to ensure isolation
-      console.log(`[${new Date().toISOString()}] [${requestId}] Creating new MCP server instance`);
-      const sessionServer = new McpServer({
-        name: packageJson.name,
-        version: packageJson.version,
-      });
-      console.log(`[${new Date().toISOString()}] [${requestId}] MCP server created successfully`);
+      let transport: StreamableHTTPServerTransport;
+      let sessionServer: McpServer;
 
-      // Register all tools for this request
-      console.log(`[${new Date().toISOString()}] [${requestId}] Registering tools`);
-      registerTools(sessionServer);
-      console.log(`[${new Date().toISOString()}] [${requestId}] Tools registered successfully`);
+      if (sessionId && sessions.has(sessionId)) {
+        const existing = sessions.get(sessionId)!;
+        transport = existing.transport;
+        sessionServer = existing.server;
+        console.debug(`[${new Date().toISOString()}] [${requestId}] Reusing existing session`);
+      } else {
+        sessionServer = new McpServer({
+          name: packageJson.name,
+          version: packageJson.version,
+        });
+        registerTools(sessionServer);
 
-      console.log(`[${new Date().toISOString()}] [${requestId}] Creating transport`);
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined, // Stateless mode
-        enableDnsRebindingProtection: false,
-      });
-      console.log(`[${new Date().toISOString()}] [${requestId}] Transport created successfully`);
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => generateSessionId(),
+          enableDnsRebindingProtection: true,
+        });
 
-      reply.raw.on("close", () => {
-        const endTime = Date.now();
-        console.log(`[${new Date().toISOString()}] [${requestId}] Connection closed after ${endTime - startTime}ms`);
-        try {
-          console.log(`[${new Date().toISOString()}] [${requestId}] Closing transport and server`);
-          transport.close();
-          sessionServer.close();
-          console.log(`[${new Date().toISOString()}] [${requestId}] Transport and server closed successfully`);
-        } catch (error) {
-          console.error(`[${new Date().toISOString()}] [${requestId}] Error closing transport/server:`, error);
+        let newSessionId: string | undefined;
+
+        reply.raw.on("close", () => {
+          const endTime = Date.now();
+          console.debug(`[${new Date().toISOString()}] [${requestId}] Connection closed after ${endTime - startTime}ms`);
+          if (newSessionId && sessions.has(newSessionId)) {
+            const session = sessions.get(newSessionId)!;
+            try {
+              session.transport.close();
+              session.server.close();
+            } catch (e) {
+              console.error(`[${new Date().toISOString()}] [${requestId}] Error closing transport on disconnect:`, e);
+            }
+            sessions.delete(newSessionId);
+            console.debug(`[${new Date().toISOString()}] [${requestId}] Session ${newSessionId} cleaned up`);
+          }
+        });
+
+        await sessionServer.connect(transport);
+
+        newSessionId = transport.sessionId;
+        if (newSessionId) {
+          sessions.set(newSessionId, { transport, server: sessionServer });
+          reply.header("Mcp-Session-Id", newSessionId);
+          console.debug(`[${new Date().toISOString()}] [${requestId}] Created new session: ${newSessionId}`);
         }
-      });
-
-      console.log(`[${new Date().toISOString()}] [${requestId}] Connecting server to transport`);
-      await sessionServer.connect(transport);
-      console.log(`[${new Date().toISOString()}] [${requestId}] Server connected, handling request`);
+      }
 
       await transport.handleRequest(request.raw, reply.raw, request.body);
 
       const endTime = Date.now();
-      console.log(`[${new Date().toISOString()}] [${requestId}] Request handled successfully in ${endTime - startTime}ms`);
+      console.debug(`[${new Date().toISOString()}] [${requestId}] Request handled in ${endTime - startTime}ms`);
     } catch (error) {
       const endTime = Date.now();
-      console.error(`[${new Date().toISOString()}] [${requestId}] Error handling MCP request after ${endTime - startTime}ms:`, error);
-      console.error(`[${new Date().toISOString()}] [${requestId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      console.error(`[${new Date().toISOString()}] [${requestId}] Error after ${endTime - startTime}ms:`, error);
 
       if (!reply.sent) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        console.log(`[${new Date().toISOString()}] [${requestId}] Sending error response`);
-        reply.code(500).send({
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: `Internal server error: ${errorMessage}`,
-          },
-          id: null,
-        });
-      } else {
-        console.log(`[${new Date().toISOString()}] [${requestId}] Reply already sent, cannot send error response`);
+        const errorResponse = formatError("MCP request processing", error);
+        reply.code(500).send(errorResponse);
       }
     }
   });
 
-  // SSE notifications not supported in stateless mode
   fastify.get("/mcp", async (request, reply) => {
     const requestId = Math.random().toString(36).substring(2, 15);
-    console.log(`[${new Date().toISOString()}] [${requestId}] Received GET MCP request`);
-    console.log(`[${new Date().toISOString()}] [${requestId}] Request headers:`, JSON.stringify(request.headers, null, 2));
-    reply.code(405).send({
-      jsonrpc: "2.0",
-      error: {
-        code: -32000,
-        message: "Method not allowed in stateless mode.",
-      },
-      id: null,
-    });
+    console.debug(`[${new Date().toISOString()}] [${requestId}] GET /mcp - SSE not supported, returning 405`);
+    
+    reply.code(405);
+    reply.header("Allow", "POST");
+    reply.send("Method Not Allowed. Use POST for MCP requests.");
   });
 
-  // Session termination not needed in stateless mode
   fastify.delete("/mcp", async (request, reply) => {
     const requestId = Math.random().toString(36).substring(2, 15);
-    console.log(`[${new Date().toISOString()}] [${requestId}] Received DELETE MCP request`);
-    console.log(`[${new Date().toISOString()}] [${requestId}] Request headers:`, JSON.stringify(request.headers, null, 2));
-    reply.code(405).send({
+    const sessionId = request.headers["mcp-session-id"] as string | undefined;
+    
+    console.debug(`[${new Date().toISOString()}] [${requestId}] DELETE /mcp, session: ${sessionId}`);
+
+    if (sessionId && sessions.has(sessionId)) {
+      const session = sessions.get(sessionId)!;
+      try {
+        session.transport.close();
+        session.server.close();
+      } catch (e) {
+        console.error(`[${new Date().toISOString()}] [${requestId}] Error closing session:`, e);
+      }
+      sessions.delete(sessionId);
+      console.debug(`[${new Date().toISOString()}] [${requestId}] Session ${sessionId} terminated`);
+    }
+
+    reply.code(200).send({
       jsonrpc: "2.0",
-      error: {
-        code: -32000,
-        message: "Method not allowed in stateless mode.",
-      },
+      result: { message: "Session terminated" },
       id: null,
     });
   });
